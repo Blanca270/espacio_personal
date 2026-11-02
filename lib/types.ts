@@ -16,6 +16,18 @@ export type ReferenceRow = {
   created_at: string;
 };
 
+export type BibliographyRow = {
+  id: string;
+  kind: string;
+  title: string;
+  authors: string;
+  year: string;
+  source: string;
+  url: string | null;
+  doi: string | null;
+  created_at: string;
+};
+
 export type TaskRow = {
   id: string;
   title: string;

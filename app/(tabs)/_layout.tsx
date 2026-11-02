@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { BookOpen, CheckSquare, FileText, FolderOpen, Home } from 'lucide-react-native';
+import { BookOpen, CheckSquare, FileText, FolderOpen, Home, Quote } from 'lucide-react-native';
 import { colors, fonts } from '@/constants/theme';
 
 export default function TabLayout() {
@@ -37,6 +37,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="archivos"
         options={{ title: 'Archivos', tabBarIcon: ({ size, color }) => <FolderOpen size={size} color={color} /> }}
+      />
+      <Tabs.Screen
+        name="citas"
+        options={{ title: 'Citas', tabBarIcon: ({ size, color }) => <Quote size={size} color={color} /> }}
       />
     </Tabs>
   );

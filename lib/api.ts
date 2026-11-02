@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { DocumentRow, ReferenceRow, TaskRow } from '@/lib/types';
+import type { BibliographyRow, DocumentRow, ReferenceRow, TaskRow } from '@/lib/types';
 
 type QueryResult = { error: { message: string } | null };
 
@@ -37,6 +37,22 @@ export async function createReference(input: NewReference) {
 
 export async function deleteReference(id: string) {
   check(await supabase.from('references_items').delete().eq('id', id));
+}
+
+export type NewBibliography = Pick<BibliographyRow, 'kind' | 'title' | 'authors' | 'year' | 'source' | 'url' | 'doi'>;
+
+export async function listBibliography(): Promise<BibliographyRow[]> {
+  const result = await supabase.from('bibliography_entries').select('*').order('created_at', { ascending: false });
+  check(result);
+  return result.data ?? [];
+}
+
+export async function createBibliography(input: NewBibliography) {
+  check(await supabase.from('bibliography_entries').insert(input));
+}
+
+export async function deleteBibliography(id: string) {
+  check(await supabase.from('bibliography_entries').delete().eq('id', id));
 }
 
 export async function listTasks(): Promise<TaskRow[]> {
