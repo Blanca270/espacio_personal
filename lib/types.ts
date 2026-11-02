@@ -25,6 +25,8 @@ export type BibliographyRow = {
   source: string;
   url: string | null;
   doi: string | null;
+  pages: string;
+  personal_notes: string;
   created_at: string;
 };
 

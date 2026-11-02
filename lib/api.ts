@@ -39,7 +39,10 @@ export async function deleteReference(id: string) {
   check(await supabase.from('references_items').delete().eq('id', id));
 }
 
-export type NewBibliography = Pick<BibliographyRow, 'kind' | 'title' | 'authors' | 'year' | 'source' | 'url' | 'doi'>;
+export type NewBibliography = Pick<
+  BibliographyRow,
+  'kind' | 'title' | 'authors' | 'year' | 'source' | 'url' | 'doi' | 'pages' | 'personal_notes'
+>;
 
 export async function listBibliography(): Promise<BibliographyRow[]> {
   const result = await supabase.from('bibliography_entries').select('*').order('created_at', { ascending: false });

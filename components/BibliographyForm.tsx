@@ -14,6 +14,8 @@ export function BibliographyForm({ onSaved }: { onSaved: () => void }) {
   const [source, setSource] = useState('');
   const [url, setUrl] = useState('');
   const [doi, setDoi] = useState('');
+  const [pages, setPages] = useState('');
+  const [personalNotes, setPersonalNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +47,8 @@ export function BibliographyForm({ onSaved }: { onSaved: () => void }) {
         source: source.trim(),
         url: cleanUrl || null,
         doi: cleanDoi || null,
+        pages: pages.trim(),
+        personal_notes: personalNotes.trim(),
       });
       onSaved();
     } catch {
@@ -72,7 +76,14 @@ export function BibliographyForm({ onSaved }: { onSaved: () => void }) {
           <TextField label="Editorial o revista" value={source} onChangeText={setSource} placeholder="Ej. Editorial Trillas" />
         </View>
       </View>
-      <TextField label="DOI (opcional)" value={doi} onChangeText={setDoi} placeholder="10.1000/xyz123" autoCapitalize="none" />
+      <View style={styles.row}>
+        <View style={styles.half}>
+          <TextField label="Página o rango (opcional)" value={pages} onChangeText={setPages} placeholder="Ej. 45-52" />
+        </View>
+        <View style={styles.half}>
+          <TextField label="DOI (opcional)" value={doi} onChangeText={setDoi} placeholder="10.1000/xyz123" autoCapitalize="none" />
+        </View>
+      </View>
       <TextField
         label="Enlace (opcional)"
         value={url}
@@ -80,6 +91,13 @@ export function BibliographyForm({ onSaved }: { onSaved: () => void }) {
         placeholder="https://..."
         autoCapitalize="none"
         keyboardType="url"
+      />
+      <TextField
+        label="Notas personales (opcional)"
+        value={personalNotes}
+        onChangeText={setPersonalNotes}
+        placeholder="Qué te aportó esta fuente, ideas para citarla, dudas..."
+        multiline
       />
       <ErrorBanner message={error} />
       <Button label={saving ? 'Guardando…' : 'Guardar referencia'} onPress={handleSave} disabled={saving} />

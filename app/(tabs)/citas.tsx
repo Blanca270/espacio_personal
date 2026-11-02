@@ -81,6 +81,7 @@ export default function CitationsScreen() {
                     <Text style={styles.title}>{entry.title}</Text>
                     <View style={styles.tagRow}>
                       <Tag label={entry.kind} tone="info" />
+                      {entry.pages ? <Tag label={`p. ${entry.pages}`} /> : null}
                     </View>
                   </View>
                   <IconButton
@@ -92,6 +93,12 @@ export default function CitationsScreen() {
                 <View style={styles.citation}>
                   <Text style={styles.citationText} selectable>{formatApaCitation(entry)}</Text>
                 </View>
+                {entry.personal_notes ? (
+                  <View style={styles.notes}>
+                    <Text style={styles.notesLabel}>Mis notas</Text>
+                    <Text style={styles.notesText}>{entry.personal_notes}</Text>
+                  </View>
+                ) : null}
                 <View style={styles.copyRow}>
                   <Button
                     label={copied ? 'Cita copiada' : 'Copiar cita APA'}
@@ -123,7 +130,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs },
   headerText: { flex: 1, minWidth: 0, gap: 6 },
   title: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 22, color: colors.neutral[900] },
-  tagRow: { flexDirection: 'row' },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   citation: {
     backgroundColor: colors.neutral[50],
     borderRadius: radius.sm,
@@ -133,4 +140,7 @@ const styles = StyleSheet.create({
   },
   citationText: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 22, color: colors.neutral[700] },
   copyRow: { flexDirection: 'row' },
+  notes: { gap: 4, paddingLeft: spacing.xs, borderLeftWidth: 3, borderLeftColor: colors.accent[700] },
+  notesLabel: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 16, color: colors.accent[700] },
+  notesText: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, color: colors.neutral[700] },
 });
