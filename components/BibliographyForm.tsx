@@ -3,11 +3,13 @@ import { StyleSheet, View } from 'react-native';
 import { Button, ErrorBanner } from '@/components/ui';
 import { OptionPicker, TextField } from '@/components/forms';
 import { createBibliography } from '@/lib/api';
-import { BIBLIOGRAPHY_KINDS, type BibliographyKind } from '@/constants/options';
+import type { BibliographyListRow } from '@/lib/types';
+import { BIBLIOGRAPHY_KINDS, BIBLIOGRAPHY_NO_LIST, type BibliographyKind } from '@/constants/options';
 import { spacing } from '@/constants/theme';
 
-export function BibliographyForm({ onSaved }: { onSaved: () => void }) {
+export function BibliographyForm({ lists, onSaved }: { lists: BibliographyListRow[]; onSaved: () => void }) {
   const [kind, setKind] = useState<BibliographyKind>('Libro');
+  const [listName, setListName] = useState(BIBLIOGRAPHY_NO_LIST);
   const [title, setTitle] = useState('');
   const [authors, setAuthors] = useState('');
   const [year, setYear] = useState('');
@@ -49,6 +51,7 @@ export function BibliographyForm({ onSaved }: { onSaved: () => void }) {
         doi: cleanDoi || null,
         pages: pages.trim(),
         personal_notes: personalNotes.trim(),
+        list_id: lists.find((list) => list.name === listName)?.id ?? null,
       });
       onSaved();
     } catch {
@@ -61,6 +64,7 @@ export function BibliographyForm({ onSaved }: { onSaved: () => void }) {
   return (
     <View style={styles.form}>
       <OptionPicker label="Tipo de fuente" options={BIBLIOGRAPHY_KINDS} value={kind} onChange={setKind} />
+      <OptionPicker label="Lista" options={[BIBLIOGRAPHY_NO_LIST, ...lists.map((list) => list.name)]} value={listName} onChange={setListName} />
       <TextField label="Título" value={title} onChangeText={setTitle} placeholder="Ej. Métodos de investigación" />
       <TextField
         label="Autores"

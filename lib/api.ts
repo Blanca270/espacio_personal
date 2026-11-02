@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { BibliographyRow, DocumentRow, ReferenceRow, TaskRow } from '@/lib/types';
+import type { BibliographyListRow, BibliographyRow, DocumentRow, ReferenceRow, TaskRow } from '@/lib/types';
 
 type QueryResult = { error: { message: string } | null };
 
@@ -41,7 +41,7 @@ export async function deleteReference(id: string) {
 
 export type NewBibliography = Pick<
   BibliographyRow,
-  'kind' | 'title' | 'authors' | 'year' | 'source' | 'url' | 'doi' | 'pages' | 'personal_notes'
+  'kind' | 'title' | 'authors' | 'year' | 'source' | 'url' | 'doi' | 'pages' | 'personal_notes' | 'list_id'
 >;
 
 export async function listBibliography(): Promise<BibliographyRow[]> {
@@ -56,6 +56,24 @@ export async function createBibliography(input: NewBibliography) {
 
 export async function deleteBibliography(id: string) {
   check(await supabase.from('bibliography_entries').delete().eq('id', id));
+}
+
+export async function setBibliographyList(id: string, listId: string | null) {
+  check(await supabase.from('bibliography_entries').update({ list_id: listId }).eq('id', id));
+}
+
+export async function listBibliographyLists(): Promise<BibliographyListRow[]> {
+  const result = await supabase.from('bibliography_lists').select('*').order('name', { ascending: true });
+  check(result);
+  return result.data ?? [];
+}
+
+export async function createBibliographyList(name: string) {
+  check(await supabase.from('bibliography_lists').insert({ name }));
+}
+
+export async function deleteBibliographyList(id: string) {
+  check(await supabase.from('bibliography_lists').delete().eq('id', id));
 }
 
 export async function listTasks(): Promise<TaskRow[]> {

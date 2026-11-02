@@ -10,3 +10,6 @@ export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
 export const BIBLIOGRAPHY_KINDS = ['Libro', 'Artículo', 'Sitio web', 'Tesis', 'Otro'] as const;
 export type BibliographyKind = (typeof BIBLIOGRAPHY_KINDS)[number];
+
+export const BIBLIOGRAPHY_ALL = 'Todas';
+export const BIBLIOGRAPHY_NO_LIST = 'Sin lista';

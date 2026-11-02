@@ -27,6 +27,13 @@ export type BibliographyRow = {
   doi: string | null;
   pages: string;
   personal_notes: string;
+  list_id: string | null;
+  created_at: string;
+};
+
+export type BibliographyListRow = {
+  id: string;
+  name: string;
   created_at: string;
 };
 

@@ -1,42 +1,63 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { Check, Copy, Plus, Trash2 } from 'lucide-react-native';
-import { Button, Card, EmptyState, ErrorBanner, IconButton, LoadingState, Screen, Tag } from '@/components/ui';
-import { SearchField } from '@/components/forms';
+import { FolderPlus, ListChecks, Plus, Trash2 } from 'lucide-react-native';
+import { Button, Card, EmptyState, ErrorBanner, LoadingState, Screen } from '@/components/ui';
+import { OptionPicker, SearchField } from '@/components/forms';
 import { FormModal } from '@/components/FormModal';
 import { BibliographyForm } from '@/components/BibliographyForm';
-import { deleteBibliography, listBibliography } from '@/lib/api';
+import { BibliographyListForm } from '@/components/BibliographyListForm';
+import { CitationCard } from '@/components/CitationCard';
+import { MoveToListForm } from '@/components/MoveToListForm';
+import { deleteBibliography, deleteBibliographyList, listBibliography, listBibliographyLists } from '@/lib/api';
 import { useLoader } from '@/lib/useLoader';
 import { formatApaCitation } from '@/lib/citation';
-import { colors, fonts, radius, spacing } from '@/constants/theme';
+import { BIBLIOGRAPHY_ALL, BIBLIOGRAPHY_NO_LIST } from '@/constants/options';
+import { colors, spacing } from '@/constants/theme';
 import type { BibliographyRow } from '@/lib/types';
+
+const LIST_COPY_KEY = 'list';
 
 export default function CitationsScreen() {
   const entries = useLoader(listBibliography);
+  const lists = useLoader(listBibliographyLists);
   const [query, setQuery] = useState('');
+  const [listFilter, setListFilter] = useState(BIBLIOGRAPHY_ALL);
   const [formOpen, setFormOpen] = useState(false);
+  const [listFormOpen, setListFormOpen] = useState(false);
+  const [movingEntry, setMovingEntry] = useState<BibliographyRow | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!copiedId) return;
-    const timer = setTimeout(() => setCopiedId(null), 2000);
+    if (!copiedKey) return;
+    const timer = setTimeout(() => setCopiedKey(null), 2000);
     return () => clearTimeout(timer);
-  }, [copiedId]);
+  }, [copiedKey]);
+
+  const allLists = lists.data ?? [];
+  const listNameById = useMemo(() => new Map(allLists.map((list) => [list.id, list.name])), [allLists]);
+  const filterOptions = [BIBLIOGRAPHY_ALL, BIBLIOGRAPHY_NO_LIST, ...allLists.map((list) => list.name)];
+  const activeFilter = filterOptions.includes(listFilter) ? listFilter : BIBLIOGRAPHY_ALL;
+  const selectedList = allLists.find((list) => list.name === activeFilter) ?? null;
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (entries.data ?? [])
+      .filter((entry) => {
+        if (activeFilter === BIBLIOGRAPHY_NO_LIST) return entry.list_id === null;
+        if (selectedList) return entry.list_id === selectedList.id;
+        return true;
+      })
       .filter((entry) => `${entry.title} ${entry.authors} ${entry.source} ${entry.kind}`.toLowerCase().includes(q))
       .sort((a, b) => formatApaCitation(a).localeCompare(formatApaCitation(b), 'es'));
-  }, [entries.data, query]);
+  }, [entries.data, query, activeFilter, selectedList]);
 
-  async function handleCopy(entry: BibliographyRow) {
+  async function handleCopy(key: string, text: string) {
     setActionError(null);
     try {
-      await Clipboard.setStringAsync(formatApaCitation(entry));
-      setCopiedId(entry.id);
+      await Clipboard.setStringAsync(text);
+      setCopiedKey(key);
     } catch {
       setActionError('No pudimos copiar la cita. Intenta de nuevo.');
     }
@@ -52,95 +73,101 @@ export default function CitationsScreen() {
     }
   }
 
+  async function handleDeleteList() {
+    if (!selectedList) return;
+    setActionError(null);
+    try {
+      await deleteBibliographyList(selectedList.id);
+      setListFilter(BIBLIOGRAPHY_ALL);
+      lists.reload();
+      entries.reload();
+    } catch {
+      setActionError('No pudimos eliminar la lista. Intenta de nuevo.');
+    }
+  }
+
   function handleSaved() {
     setFormOpen(false);
     entries.reload();
   }
 
+  function handleListSaved() {
+    setListFormOpen(false);
+    lists.reload();
+  }
+
+  function handleMoved() {
+    setMovingEntry(null);
+    entries.reload();
+  }
+
+  const loadError = entries.error ?? lists.error;
+
   return (
     <Screen
       eyebrow="Fuentes para tus trabajos"
       title="Referencias bibliográficas"
-      subtitle="Guarda tus fuentes y copia su cita en formato APA cuando la necesites."
-      action={<Button label="Nueva referencia" icon={<Plus size={18} color={colors.neutral[0]} />} onPress={() => setFormOpen(true)} />}>
+      subtitle="Guarda tus fuentes, organízalas en listas y copia sus citas en formato APA."
+      action={
+        <View style={styles.actions}>
+          <Button label="Nueva lista" variant="secondary" icon={<FolderPlus size={18} color={colors.primary[700]} />} onPress={() => setListFormOpen(true)} />
+          <Button label="Nueva referencia" icon={<Plus size={18} color={colors.neutral[0]} />} onPress={() => setFormOpen(true)} />
+        </View>
+      }>
       <SearchField value={query} onChangeText={setQuery} placeholder="Buscar por título, autor o editorial..." />
-      <ErrorBanner message={entries.error ?? actionError} />
+      <OptionPicker label="Mostrar" options={filterOptions} value={activeFilter} onChange={setListFilter} />
+      <ErrorBanner message={loadError ?? actionError} />
+
+      {selectedList || visible.length > 0 ? (
+        <View style={styles.listActions}>
+          {visible.length > 0 ? (
+            <Button
+              label={copiedKey === LIST_COPY_KEY ? 'Lista copiada' : 'Copiar lista en APA'}
+              variant="secondary"
+              icon={<ListChecks size={16} color={colors.primary[700]} />}
+              onPress={() => handleCopy(LIST_COPY_KEY, visible.map(formatApaCitation).join('\n\n'))}
+            />
+          ) : null}
+          {selectedList ? (
+            <Button label="Eliminar lista" variant="secondary" icon={<Trash2 size={16} color={colors.primary[700]} />} onPress={handleDeleteList} />
+          ) : null}
+        </View>
+      ) : null}
 
       <Card>
         {entries.loading && !entries.data ? (
           <LoadingState />
         ) : visible.length === 0 ? (
-          <EmptyState message={query ? 'Ninguna referencia coincide con tu búsqueda.' : 'Aún no tienes referencias bibliográficas.'} />
+          <EmptyState message={query || activeFilter !== BIBLIOGRAPHY_ALL ? 'Ninguna referencia coincide con tu búsqueda o lista.' : 'Aún no tienes referencias bibliográficas.'} />
         ) : (
-          visible.map((entry) => {
-            const copied = copiedId === entry.id;
-            return (
-              <View key={entry.id} style={styles.row}>
-                <View style={styles.header}>
-                  <View style={styles.headerText}>
-                    <Text style={styles.title}>{entry.title}</Text>
-                    <View style={styles.tagRow}>
-                      <Tag label={entry.kind} tone="info" />
-                      {entry.pages ? <Tag label={`p. ${entry.pages}`} /> : null}
-                    </View>
-                  </View>
-                  <IconButton
-                    icon={<Trash2 size={17} color={colors.neutral[500]} />}
-                    label={`Eliminar ${entry.title}`}
-                    onPress={() => handleDelete(entry)}
-                  />
-                </View>
-                <View style={styles.citation}>
-                  <Text style={styles.citationText} selectable>{formatApaCitation(entry)}</Text>
-                </View>
-                {entry.personal_notes ? (
-                  <View style={styles.notes}>
-                    <Text style={styles.notesLabel}>Mis notas</Text>
-                    <Text style={styles.notesText}>{entry.personal_notes}</Text>
-                  </View>
-                ) : null}
-                <View style={styles.copyRow}>
-                  <Button
-                    label={copied ? 'Cita copiada' : 'Copiar cita APA'}
-                    variant="secondary"
-                    onPress={() => handleCopy(entry)}
-                    icon={copied ? <Check size={16} color={colors.success[700]} /> : <Copy size={16} color={colors.primary[700]} />}
-                  />
-                </View>
-              </View>
-            );
-          })
+          visible.map((entry) => (
+            <CitationCard
+              key={entry.id}
+              entry={entry}
+              listName={entry.list_id ? listNameById.get(entry.list_id) ?? null : null}
+              copied={copiedKey === entry.id}
+              onCopy={() => handleCopy(entry.id, formatApaCitation(entry))}
+              onMove={() => setMovingEntry(entry)}
+              onDelete={() => handleDelete(entry)}
+            />
+          ))
         )}
       </Card>
 
       <FormModal visible={formOpen} title="Nueva referencia bibliográfica" onClose={() => setFormOpen(false)}>
-        <BibliographyForm onSaved={handleSaved} />
+        <BibliographyForm lists={allLists} onSaved={handleSaved} />
+      </FormModal>
+      <FormModal visible={listFormOpen} title="Nueva lista" onClose={() => setListFormOpen(false)}>
+        <BibliographyListForm lists={allLists} onSaved={handleListSaved} />
+      </FormModal>
+      <FormModal visible={movingEntry !== null} title="Mover a otra lista" onClose={() => setMovingEntry(null)}>
+        {movingEntry ? <MoveToListForm entry={movingEntry} lists={allLists} onSaved={handleMoved} /> : null}
       </FormModal>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[100],
-  },
-  header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs },
-  headerText: { flex: 1, minWidth: 0, gap: 6 },
-  title: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 22, color: colors.neutral[900] },
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  citation: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.neutral[100],
-    padding: spacing.xs,
-  },
-  citationText: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 22, color: colors.neutral[700] },
-  copyRow: { flexDirection: 'row' },
-  notes: { gap: 4, paddingLeft: spacing.xs, borderLeftWidth: 3, borderLeftColor: colors.accent[700] },
-  notesLabel: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 16, color: colors.accent[700] },
-  notesText: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, color: colors.neutral[700] },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  listActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
 });
